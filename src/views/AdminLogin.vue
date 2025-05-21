@@ -25,7 +25,9 @@ export default {
             this.error = "";
             this.loading = true;
             try {
-                const res = await fetch(`http://127.0.0.1:8000/api/admin/login`, {
+                const backendUrl = 'http://localhost:8000'
+                const urlPrefix = "/api/admin"
+                const res = await fetch(`${backendUrl}${urlPrefix}/login`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"

@@ -25,7 +25,6 @@ const router = createRouter({
     routes
 })
 
-// 路由守卫
 router.beforeEach((to, from, next) => {
     if (to.meta.requiresAuth) {
         // 判断 localStorage 是否有 token

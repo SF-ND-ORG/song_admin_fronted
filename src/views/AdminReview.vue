@@ -51,11 +51,12 @@ function showToast(msg, success = true, timeout = 2000) {
     toast.value = { show: true, message: msg, success }
     if (timeout > 0) setTimeout(() => (toast.value.show = false), timeout)
 }
-
+const backendUrl = 'http://localhost:8000'
+const urlPrefix = "/api/admin"
 const fetchSongs = async () => {
     loading.value = true
     const token = localStorage.getItem('admin_token')
-    const res = await fetch('http://127.0.0.1:8000/api/admin/song/list?status=pending', {
+    const res = await fetch(`${backendUrl}${urlPrefix}/song/list?status=pending`, {
         headers: { Authorization: 'Bearer ' + token },
     })
     const data = await res.json()
@@ -66,7 +67,7 @@ const fetchSongs = async () => {
 const review = async (song_request_id, status) => {
     const reason = reasons.value[song_request_id] || ""
     const token = localStorage.getItem('admin_token')
-    const res = await fetch('http://127.0.0.1:8000/api/admin/song/review', {
+    const res = await fetch(`${backendUrl}${urlPrefix}/song/review`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -92,7 +93,6 @@ const logout = () => {
 
 function formatTime(t) {
     if (!t) return ''
-    // 兼容sqlite格式
     return new Date(t).toLocaleString()
 }
 
