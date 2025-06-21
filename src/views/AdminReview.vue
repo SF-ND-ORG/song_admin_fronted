@@ -51,7 +51,7 @@ function showToast(msg, success = true, timeout = 2000) {
     toast.value = { show: true, message: msg, success }
     if (timeout > 0) setTimeout(() => (toast.value.show = false), timeout)
 }
-const backendUrl = 'http://localhost:8000'
+const backendUrl = 'https://mc.202718.xyz'
 const urlPrefix = "/api/admin"
 const fetchSongs = async () => {
     loading.value = true
