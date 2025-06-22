@@ -33,13 +33,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const songs = ref([])
 const loading = ref(false)
 const reasons = ref({})
 const router = useRouter()
+// 添加一个变量来存储定时器ID，方便后续清除
+const timerRef = ref(null)
 
 const toast = ref({
     show: false,
@@ -52,41 +54,96 @@ function showToast(msg, success = true, timeout = 2000) {
     if (timeout > 0) setTimeout(() => (toast.value.show = false), timeout)
 }
 const backendUrl = 'https://mc.202718.xyz'
+//const backendUrl = 'http://127.0.0.1:8000'
 const urlPrefix = "/api/admin"
 const fetchSongs = async () => {
-    loading.value = true
-    const token = localStorage.getItem('admin_token')
-    const res = await fetch(`${backendUrl}${urlPrefix}/song/list?status=pending`, {
-        headers: { Authorization: 'Bearer ' + token },
-    })
-    const data = await res.json()
-    songs.value = data.songs || []
-    loading.value = false
+    // 避免频繁请求时的加载状态闪烁
+    const isInitialLoad = songs.value.length === 0
+    if (isInitialLoad) {
+        loading.value = true
+    }
+
+    try {
+        const token = localStorage.getItem('admin_token')
+        const res = await fetch(`${backendUrl}${urlPrefix}/song/list?status=pending`, {
+            headers: { Authorization: 'Bearer ' + token },
+        })
+
+        if (!res.ok) {
+            // 如果请求返回错误（如401未授权），处理错误
+            if (res.status === 401) {
+                // token可能已过期，重定向到登录页
+                localStorage.removeItem('admin_token')
+                router.push('/admin/login')
+                return
+            }
+            throw new Error('获取数据失败')
+        }
+
+        const data = await res.json()
+        // 比较新旧数据，判断是否有新请求
+        const oldIds = new Set(songs.value.map(s => s.id))
+        const newSongs = data.songs || []
+        const hasNewSongs = newSongs.some(song => !oldIds.has(song.id))
+
+        if (hasNewSongs && songs.value.length > 0) {
+            // 有新的点歌请求，显示提示
+            showToast('收到新的点歌请求！', true, 3000)
+        }
+
+        songs.value = newSongs
+    } catch (error) {
+        console.error('获取点歌请求失败:', error)
+    } finally {
+        if (isInitialLoad) {
+            loading.value = false
+        }
+    }
+}
+
+// 开始定时轮询
+const startPolling = (interval = 10000) => { // 默认10秒
+    fetchSongs() // 立即执行一次
+    timerRef.value = setInterval(fetchSongs, interval)
+}
+
+// 停止定时轮询
+const stopPolling = () => {
+    if (timerRef.value) {
+        clearInterval(timerRef.value)
+        timerRef.value = null
+    }
 }
 
 const review = async (song_request_id, status) => {
     const reason = reasons.value[song_request_id] || ""
     const token = localStorage.getItem('admin_token')
-    const res = await fetch(`${backendUrl}${urlPrefix}/song/review`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Bearer ' + token
-        },
-        body: JSON.stringify({ song_request_id, status, reason }),
-    })
-    const data = await res.json()
-    if (data.success) {
-        showToast('审核成功', true)
-        songs.value = songs.value.filter(s => s.id !== song_request_id)
-    } else if (data.detail) {
-        showToast(data.detail, false, 3000)
-    } else {
-        showToast('审核失败', false, 3000)
+    try {
+        const res = await fetch(`${backendUrl}${urlPrefix}/song/review`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: 'Bearer ' + token
+            },
+            body: JSON.stringify({ song_request_id, status, reason }),
+        })
+        const data = await res.json()
+        if (data.success) {
+            showToast('审核成功', true)
+            songs.value = songs.value.filter(s => s.id !== song_request_id)
+        } else if (data.detail) {
+            showToast(data.detail, false, 3000)
+        } else {
+            showToast('审核失败', false, 3000)
+        }
+    } catch (error) {
+        showToast('网络错误，请重试', false, 3000)
+        console.error('审核失败:', error)
     }
 }
 
 const logout = () => {
+    stopPolling() // 退出登录时停止轮询
     localStorage.removeItem('admin_token')
     router.push('/admin/login')
 }
@@ -96,7 +153,15 @@ function formatTime(t) {
     return new Date(t).toLocaleString()
 }
 
-onMounted(fetchSongs)
+onMounted(() => {
+    // 组件挂载时开始轮询，设置为每10秒轮询一次
+    startPolling(10000)
+})
+
+onUnmounted(() => {
+    // 组件卸载时清除轮询
+    stopPolling()
+})
 </script>
 
 <style scoped>
