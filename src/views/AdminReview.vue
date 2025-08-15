@@ -10,9 +10,8 @@
                     <div>
                         <span class="label">学号：</span>{{ song.student_id }}
                         <span class="label">姓名：</span>{{ song.name }}
-                    </div>
-                    <div>
                         <span class="label">歌曲ID：</span>{{ song.song_id }}
+                        <span class="label">歌曲名：</span>{{ song.song_name }}
                         <span class="label">请求时间：</span>{{ formatTime(song.request_time) }}
                     </div>
                 </div>
@@ -53,8 +52,8 @@ function showToast(msg, success = true, timeout = 2000) {
     toast.value = { show: true, message: msg, success }
     if (timeout > 0) setTimeout(() => (toast.value.show = false), timeout)
 }
-const backendUrl = 'https://mc.202718.xyz'
-//const backendUrl = 'http://127.0.0.1:8000'
+//const backendUrl = 'https://mc.202718.xyz'
+const backendUrl = 'http://127.0.0.1:8000'
 const urlPrefix = "/api/admin"
 const fetchSongs = async () => {
     // 避免频繁请求时的加载状态闪烁
