@@ -25,7 +25,6 @@ export default {
             this.error = "";
             this.loading = true;
             try {
-                //const backendUrl = 'https://mc.202718.xyz'
                 const backendUrl = 'http://127.0.0.1:8000'
                 const urlPrefix = "/api/admin"
                 const res = await fetch(`${backendUrl}${urlPrefix}/login`, {
